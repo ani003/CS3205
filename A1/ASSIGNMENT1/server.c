@@ -1,13 +1,18 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<dirent.h>
-#include<errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #define MAX_IN 1000
 #define MAX_MSG (MAX_IN + 100)
+#define PORT 8080
+#define SA struct sockaddr
 
 //Linked list to store user information
 struct userNode {
@@ -23,137 +28,80 @@ userNode* tail = NULL;
 
 int add_user(char* user_id);
 userNode* exists_user(char* user);
-void send_mail(char* sender, userNode* receiver);
-FILE* read_mail(userNode* user, FILE* read_fp);
+void send_mail(char* sender, userNode* receiver, char* mail_body);
+FILE* read_mail(userNode* user, FILE* read_fp, char* msg);
 FILE* delete_mail(userNode* user, int msg_count);
+void socket_func(int sockfd);
+int process_commands(char* inp, char* out_msg);
 
 int main(int argc, char* argv[]) {
-    printf("Server started\n");
-    char user_in[MAX_IN];
-    char* token;
-    char* commands[2];
-    userNode* curr_user = NULL;
-    FILE* read_fp = NULL;
-    int msg_count = 0;
+    int sockfd, connfd, len;
+    struct sockaddr_in servaddr, cli;
 
-    while(1) {
-        printf("Server-prompt> ");
-        fgets(user_in, MAX_IN, stdin);  //Read user input
-        token = strtok(user_in, "\n");  //Strip new line
-        
-        //Extract space separated tokens
-        token = strtok(token, " ");
-        if(token != NULL) {
-            commands[0] = (char*)malloc(strlen(token) + 1);
-            strcpy(commands[0], token);
-
-            token = strtok(NULL, " ");
-            if(token != NULL) {
-                commands[1] = (char*)malloc(strlen(token) + 1);
-                strcpy(commands[1], token);
-            }
-        }
-        else {
-            //Nothing entered
-            continue;
-        }
-
-        //Check the command
-        if(strcmp(commands[0], "LSTU") == 0) {
-            //List all users
-            userNode* curr;
-            curr = head;
-
-            while (curr != NULL)
-            {
-                printf("%s ", curr->id);
-                curr = curr->next;
-            }
-            printf("\n");
-            
-        }
-        else if(strcmp(commands[0], "ADDU") == 0) {
-            //Add new user
-            struct stat st = {0};
-            if (stat("MAILSERVER", &st) == -1) {
-                mkdir("MAILSERVER", 0777);
-            }
-
-            if(add_user(commands[1])) {
-                printf("User already present\n");
-            }
-            else {
-                printf("User added successfully\n");
-            }
-        }
-        else if(strcmp(commands[0], "USER") == 0) {
-            //Set the current user to the given user
-            curr_user = exists_user(commands[1]);
-            if(curr_user == NULL) {
-                printf("User %s does not exist\n", commands[1]);
-            }
-            else {
-                printf("User %s exists. Totally %d messages in spool file\n", commands[1], curr_user->num_messages);
-                read_fp = NULL;
-                msg_count = 0;
-            }
-        }
-        else if(strcmp(commands[0], "READM") == 0) {
-            //Read the mail pointed to by the read pointer
-            if(curr_user == NULL) {
-                printf("No user selected. Please select the user using \'USER\' command\n");
-            }
-            else {
-                read_fp = read_mail(curr_user, read_fp);
-                if(++msg_count == curr_user->num_messages) {
-                    fseek(read_fp, 0, SEEK_SET);
-                    msg_count = 0;
-                }
-            }
-        }
-        else if(strcmp(commands[0], "DELM") == 0) {
-            //Delete the mail pointed to by the read pointer
-            if(curr_user == NULL) {
-                printf("No user selected. Please select the user using \'USER\' command\n");
-            }
-            else {
-                read_fp = delete_mail(curr_user, msg_count);
-                if(msg_count >= curr_user->num_messages) {
-                    msg_count = 0;
-                }
-            }
-
-        }
-        else if(strcmp(commands[0], "SEND") == 0) {
-            //Send a new mail from current user to the given user
-            if(curr_user == NULL) {
-                printf("No user selected. Please select the user using \'USER\' command\n");
-            }
-            else {
-                userNode* receiver = NULL;
-                receiver = exists_user(commands[1]);
-                if(receiver == NULL) {
-                    printf("Receiver %s does not exist\n", commands[1]);
-                }
-                else {
-                    send_mail(curr_user->id, receiver);
-                }
-            }
-        }
-        else if(strcmp(commands[0], "DONEU") == 0) {
-            //Reset the current user
-            curr_user = NULL;
-            if(read_fp !=NULL) {
-                fclose(read_fp);
-            }
-            read_fp = NULL;
-            msg_count = 0;
-        }
-        else if(strcmp(commands[0], "QUIT") == 0) {
-            //Stop the server
-            break;
-        }
+    //Create socket
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    /*
+    if (sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
     }
+    else
+        printf("Socket successfully created..\n");
+    */
+    bzero(&servaddr, sizeof(servaddr));
+
+    //Assign IP, PORT
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(PORT);
+
+    //Setup the socket
+    bind(sockfd, (SA*)&servaddr, sizeof(servaddr));
+    listen(sockfd, 5);
+    len = sizeof(cli);
+    connfd = accept(sockfd, (SA*)&cli, &len);
+
+    //char init_msg[] = "Connected to the server\n";
+    //write(connfd, init_msg, sizeof(init_msg));
+
+    //Listen and respond to the client
+    socket_func(connfd);
+
+    //Close the socket
+    close(sockfd);
+
+    /*
+    if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) {
+        printf("socket bind failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully binded..\n");
+
+    // Now server is ready to listen and verification
+    if ((listen(sockfd, 5)) != 0) {
+        printf("Listen failed...\n");
+        exit(0);
+    }
+    else
+        printf("Server listening..\n");
+    len = sizeof(cli);
+
+    //Accept the data packet from client and verification
+    connfd = accept(sockfd, (SA*)&cli, &len);
+    if (connfd < 0) {
+        printf("server acccept failed...\n");
+        exit(0);
+    }
+    else
+        printf("server acccept the client...\n");
+
+    //Function for chatting between client and server
+    socket_func(connfd);
+
+    // After chatting close the socket
+    close(sockfd);
+    */
 
     return 0;
 }
@@ -219,45 +167,34 @@ userNode* exists_user(char* user) {
 /**
  * Send a mail from sender to receiver
 */
-void send_mail(char* sender, userNode* receiver) {
+void send_mail(char* sender, userNode* receiver, char* mail_body) {
     //Initiase preamble
-    char* msg;
-    msg = (char*)malloc(MAX_MSG);
+    char msg[MAX_MSG];
     strcpy(msg, "From: ");
     strcat(msg, sender);
     strcat(msg, "\nTo: ");
     strcat(msg, receiver->id);
     strcat(msg, "\nMessage:\n");
 
-    printf("Type your message:\n");
-    char str[MAX_IN];
     char* end_msg;
 
-    //Read input from stdin and write it, until "###" is encountered
-    while(1) {
-        fgets(str, MAX_IN, stdin);
-        if((end_msg = strstr(str, "###"))) {
-            //Last line
-            int msg_len = strlen(msg);
-            for(int i = 0; (str + i) != end_msg; i++){
-                msg[msg_len + i] = str[i];
-                msg[msg_len + i + 1] = '\0';
-            }
-            
-            msg_len = strlen(msg);
-            if(msg[msg_len - 1] != '\n') {
-                msg[msg_len] = '\n';
-                msg[msg_len + 1] = '\0';
-            }
-
-            strcat(msg, "###\n");
-            break;
-        }
-        else {
-            //Not the last line
-            strcat(msg, str);
-        }
+    //Process the mail body to a suitable format
+    end_msg = strstr(mail_body, "###");
+    int msg_len = strlen(msg);
+    for(int i = 0; (mail_body + i) != end_msg; i++){
+        msg[msg_len + i] = mail_body[i];
     }
+
+    msg_len = strlen(msg);
+    if(msg[msg_len - 1] != '\n') {
+        msg[msg_len] = '\n';
+        msg[msg_len + 1] = '\0';
+    }
+    else {
+        msg[msg_len] = '\0';
+    }
+
+    strcat(msg, "###\n");
 
     //Write the message to the receiver spool file
     FILE* fp;
@@ -274,10 +211,11 @@ void send_mail(char* sender, userNode* receiver) {
 /**
  * Read the mail pointed to by the read_fp pointer
 */
-FILE* read_mail(userNode* user, FILE* read_fp) {
+FILE* read_mail(userNode* user, FILE* read_fp, char* msg) {
+    msg = (char*)malloc(MAX_MSG);
     if(user->num_messages == 0) {
         //No messages to read
-        printf("No more mail\n");
+        strcpy(msg, "No more mail\n");
         return read_fp;
     }
 
@@ -290,7 +228,7 @@ FILE* read_mail(userNode* user, FILE* read_fp) {
     }
 
     //Read the message
-    char msg[MAX_MSG], tmp[MAX_IN];
+    char tmp[MAX_IN];
     strcpy(msg, "");
     fgets(tmp, MAX_MSG, read_fp);
     while(!strstr(tmp, "###")) {
@@ -298,7 +236,6 @@ FILE* read_mail(userNode* user, FILE* read_fp) {
         fgets(tmp, MAX_MSG, read_fp);
     }
 
-    printf("%s", msg);
     return read_fp;
 }
 
@@ -306,12 +243,6 @@ FILE* read_mail(userNode* user, FILE* read_fp) {
  * Delete the mail after msg_count mails from the user's spool
 */
 FILE* delete_mail(userNode* user, int msg_count) {
-    if(user->num_messages == 0) {
-        //No messages to delete
-        printf("No more mail\n");
-        return NULL;
-    }
-
     //Open the spool file and the temporary file
     FILE *read_fp, *write_fp;
 
@@ -378,6 +309,167 @@ FILE* delete_mail(userNode* user, int msg_count) {
         count++;
     }
 
-    printf("Message deleted\n");
     return read_fp;
+}
+
+// Function designed for chat between client and server
+void socket_func(int sockfd) {
+    char input_msg[MAX_IN];
+    char* reply_msg;
+    int quit_flag = 0;
+
+    while(!quit_flag) {
+        bzero(input_msg, MAX_IN);
+
+        //Read message from client
+        read(sockfd, input_msg, MAX_IN);
+        quit_flag = process_commands(input_msg, reply_msg);
+
+        //Send response back to the client
+        write(sockfd, reply_msg, sizeof(reply_msg));
+
+        //If input was QUIT, then quit
+        //if (strstr(input_msg, "QUIT")) {
+        //    break;
+        //}
+    }
+}
+
+int process_commands(char* inp, char* out_msg) {
+    char in_msg[MAX_IN];
+    out_msg = (char*)malloc(MAX_IN);
+    char* token;
+    char* commands[2];
+    userNode* curr_user = NULL;
+    FILE* read_fp = NULL;
+    int msg_count = 0;
+    strcpy(in_msg, inp);
+
+    //Extract space separated tokens
+    token = strtok(in_msg, " ");
+    if(token != NULL) {
+        commands[0] = (char*)malloc(strlen(token) + 1);
+        strcpy(commands[0], token);
+
+        token = strtok(NULL, " ");
+        if(token != NULL) {
+            commands[1] = (char*)malloc(strlen(token) + 1);
+            strcpy(commands[1], token);
+        }
+    }
+
+    //Check the command
+    if(strcmp(commands[0], "LSTU") == 0) {
+        //List all users
+        userNode* curr;
+        curr = head;
+
+        strcpy(out_msg, "");
+        while (curr != NULL) {
+            strcat(out_msg, curr->id);
+            strcat(out_msg, " ");
+            curr = curr->next;
+        }
+        strcat(out_msg, "\n");
+    }
+    else if(strcmp(commands[0], "ADDU") == 0) {
+        //Add new user
+        struct stat st = {0};
+        if (stat("MAILSERVER", &st) == -1) {
+            mkdir("MAILSERVER", 0777);
+        }
+
+        if(add_user(commands[1])) {
+            strcpy(out_msg, "User already present\n");
+        }
+        else {
+            strcpy(out_msg, "User added successfully\n");
+        }
+    }
+    else if(strcmp(commands[0], "USER") == 0) {
+        //Set the current user to the given user
+        curr_user = exists_user(commands[1]);
+        if(curr_user == NULL) {
+            sprintf(out_msg, "User %s does not exist\n", commands[1]);
+        }
+        else {
+            sprintf(out_msg, "User %s exists. Totally %d messages in spool file\n", commands[1], curr_user->num_messages);
+            read_fp = NULL;
+            msg_count = 0;
+        }
+    }
+    else if(strcmp(commands[0], "READM") == 0) {
+        //Read the mail pointed to by the read pointer
+        if(curr_user == NULL) {
+            strcpy(out_msg, "No user selected. Please select the user using \'SetUser\' command\n");
+        }
+        else {
+            char* msg;
+            read_fp = read_mail(curr_user, read_fp, msg);
+            if(++msg_count == curr_user->num_messages) {
+                fseek(read_fp, 0, SEEK_SET);
+                msg_count = 0;
+            }
+            strcpy(out_msg, msg);
+        }
+    }
+    else if(strcmp(commands[0], "DELM") == 0) {
+        //Delete the mail pointed to by the read pointer
+        if(curr_user == NULL) {
+            strcpy(out_msg, "No user selected. Please select the user using \'SetUser\' command\n");
+        }
+        else if(curr_user->num_messages == 0) {
+            //No messages to delete
+            strcpy(out_msg, "No more mail\n");
+        }
+        else {
+            read_fp = delete_mail(curr_user, msg_count);
+            if(msg_count >= curr_user->num_messages) {
+                msg_count = 0;
+            }
+            strcpy(out_msg, "Message deleted\n");
+        }
+    }
+    else if(strcmp(commands[0], "SEND") == 0) {
+        //Send a new mail from current user to the given user
+        if(curr_user == NULL) {
+            strcpy(out_msg, "No user selected. Please select the user using \'SetUser\' command\n");
+        }
+        else {
+            userNode* receiver = NULL;
+            receiver = exists_user(commands[1]);
+            if(receiver == NULL) {
+                sprintf(out_msg, "Receiver %s does not exist", commands[1]);
+            }
+            else {
+                char msg[MAX_IN];
+                int offset = strlen(commands[1]) + 6;
+                int msg_len = strlen(inp) - offset;
+                for(int i = 0; i < msg_len; i++) {
+                    msg[i] = inp[offset + i];
+                }
+                msg[msg_len] = '\0';
+
+                send_mail(curr_user->id, receiver, msg);
+
+                strcpy(out_msg, "Message sent\n");
+            }
+        }
+    }
+    else if(strcmp(commands[0], "DONEU") == 0) {
+        //Reset the current user
+        curr_user = NULL;
+        if(read_fp !=NULL) {
+            fclose(read_fp);
+        }
+        read_fp = NULL;
+        msg_count = 0;
+    }
+    else if(strcmp(commands[0], "QUIT") == 0) {
+        //Stop the server
+        strcpy(out_msg, "Connection closed");
+        return 1;
+    }
+
+    return 0;
 }
