@@ -26,13 +26,25 @@ typedef struct userNode userNode;
 userNode* head = NULL;
 userNode* tail = NULL;
 
+userNode* curr_user = NULL;
+FILE* read_fp = NULL;
+int msg_count = 0;
+
+struct readRet {
+    char* msg;
+    FILE* fp;
+};
+
+typedef struct readRet readRet;
+
+
 int add_user(char* user_id);
 userNode* exists_user(char* user);
 void send_mail(char* sender, userNode* receiver, char* mail_body);
-FILE* read_mail(userNode* user, FILE* read_fp, char* msg);
+readRet* read_mail(userNode* user, FILE* read_fp);
 FILE* delete_mail(userNode* user, int msg_count);
 void socket_func(int sockfd);
-int process_commands(char* inp, char* out_msg);
+char* process_commands(char* inp);
 
 int main(int argc, char* argv[]) {
     int sockfd, connfd, len;
@@ -211,12 +223,16 @@ void send_mail(char* sender, userNode* receiver, char* mail_body) {
 /**
  * Read the mail pointed to by the read_fp pointer
 */
-FILE* read_mail(userNode* user, FILE* read_fp, char* msg) {
-    msg = (char*)malloc(MAX_MSG);
+readRet* read_mail(userNode* user, FILE* read_fp) {
+    readRet* result;
+    result = (readRet*)malloc(sizeof(readRet));
+    
+    result->msg = (char*)malloc(MAX_MSG);
     if(user->num_messages == 0) {
         //No messages to read
-        strcpy(msg, "No more mail\n");
-        return read_fp;
+        strcpy(result->msg, "No more mail\n");
+        result->fp = read_fp;
+        return result;
     }
 
     //Open file for reading, if not opened
@@ -229,14 +245,16 @@ FILE* read_mail(userNode* user, FILE* read_fp, char* msg) {
 
     //Read the message
     char tmp[MAX_IN];
-    strcpy(msg, "");
+    strcpy(result->msg, "\n");
     fgets(tmp, MAX_MSG, read_fp);
     while(!strstr(tmp, "###")) {
-        strcat(msg, tmp);
+        strcat(result->msg, tmp);
         fgets(tmp, MAX_MSG, read_fp);
     }
 
-    return read_fp;
+    result->fp = read_fp;
+
+    return result;
 }
 
 /**
@@ -314,35 +332,34 @@ FILE* delete_mail(userNode* user, int msg_count) {
 
 // Function designed for chat between client and server
 void socket_func(int sockfd) {
-    char input_msg[MAX_IN];
-    char* reply_msg;
-    int quit_flag = 0;
+    char buff[MAX_IN], inp[MAX_IN];
 
-    while(!quit_flag) {
-        bzero(input_msg, MAX_IN);
+    while(1) {
+        bzero(buff, MAX_IN);
 
         //Read message from client
-        read(sockfd, input_msg, MAX_IN);
-        quit_flag = process_commands(input_msg, reply_msg);
+        read(sockfd, buff, sizeof(buff));
+        //printf("Received: %s\n", buff);
+        strcpy(inp, buff);
 
+        bzero(buff, MAX_IN);
+        strcpy(buff, process_commands(inp));
         //Send response back to the client
-        write(sockfd, reply_msg, sizeof(reply_msg));
+        write(sockfd, buff, sizeof(buff));
 
         //If input was QUIT, then quit
-        //if (strstr(input_msg, "QUIT")) {
-        //    break;
-        //}
+        if (strstr(inp, "QUIT")) {
+            break;
+        }
     }
 }
 
-int process_commands(char* inp, char* out_msg) {
+char* process_commands(char* inp) {
     char in_msg[MAX_IN];
-    out_msg = (char*)malloc(MAX_IN);
+    char* out_msg = (char*)malloc(MAX_IN);
     char* token;
     char* commands[2];
-    userNode* curr_user = NULL;
-    FILE* read_fp = NULL;
-    int msg_count = 0;
+    
     strcpy(in_msg, inp);
 
     //Extract space separated tokens
@@ -370,7 +387,7 @@ int process_commands(char* inp, char* out_msg) {
             strcat(out_msg, " ");
             curr = curr->next;
         }
-        strcat(out_msg, "\n");
+        strcat(out_msg, " \n");
     }
     else if(strcmp(commands[0], "ADDU") == 0) {
         //Add new user
@@ -404,13 +421,15 @@ int process_commands(char* inp, char* out_msg) {
             strcpy(out_msg, "No user selected. Please select the user using \'SetUser\' command\n");
         }
         else {
-            char* msg;
-            read_fp = read_mail(curr_user, read_fp, msg);
+            readRet* result;
+            result = read_mail(curr_user, read_fp);
+            read_fp = result->fp;
             if(++msg_count == curr_user->num_messages) {
                 fseek(read_fp, 0, SEEK_SET);
                 msg_count = 0;
             }
-            strcpy(out_msg, msg);
+
+            strcpy(out_msg, result->msg);
         }
     }
     else if(strcmp(commands[0], "DELM") == 0) {
@@ -464,12 +483,12 @@ int process_commands(char* inp, char* out_msg) {
         }
         read_fp = NULL;
         msg_count = 0;
+        strcpy(out_msg, "User reset\n");
     }
     else if(strcmp(commands[0], "QUIT") == 0) {
         //Stop the server
-        strcpy(out_msg, "Connection closed");
-        return 1;
+        strcpy(out_msg, "Connection closed\n");
     }
 
-    return 0;
+    return out_msg;
 }

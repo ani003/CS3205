@@ -18,7 +18,7 @@ int user_flag = 0;
 char curr_user_id[100];
 
 void socket_func(int sockfd);
-int prepare_message(char* msg);
+char* prepare_message();
 
 int main(int argc, char* argv[]) {
     int sockfd, connfd;
@@ -66,24 +66,33 @@ int main(int argc, char* argv[]) {
 }
 
 void socket_func(int sockfd) {
-    char msg[MAX_IN];
+    char buff[MAX_IN];
     int quit_flag = 0;
+
     while(!quit_flag) {
-        bzero(msg, MAX_IN);
-        quit_flag = prepare_message(msg);
-        write(sockfd, msg, MAX_IN);
-        bzero(msg, MAX_IN);
-        read(sockfd, msg, MAX_IN);
-        printf("Server: %s", msg);
+        bzero(buff, MAX_IN);
+        strcpy(buff, prepare_message());
+        //printf("Sending: %s\n",buff);
+        write(sockfd, buff, sizeof(buff));
+
+        //If input was QUIT, then quit
+        if (strstr(buff, "QUIT")) {
+            quit_flag = 1;
+        }
+
+        bzero(buff, MAX_IN);
+        read(sockfd, buff, sizeof(buff));
+        printf("Server: %s", buff);
     }
 }
 
-int prepare_message(char* msg) {
+char* prepare_message() {
     char user_in[MAX_IN];
     char* token;
     char* commands[2];
 
-    msg = (char*)malloc(MAX_IN);
+    char* msg = (char*)malloc(MAX_IN);
+    strcpy(msg, "");
 
     while(1) {
         //Set appropriate prompt message
@@ -93,7 +102,7 @@ int prepare_message(char* msg) {
         else {
             printf("Main-Prompt> ");
         }
-        
+
         fgets(user_in, MAX_IN, stdin);  //Read user input
         token = strtok(user_in, "\n");  //Strip new line
         
@@ -169,9 +178,10 @@ int prepare_message(char* msg) {
         else if(strcmp(commands[0], "Quit") == 0) {
             //Stop the client and server
             strcpy(msg, "QUIT");
-            return 1;
+            break;
         }
     }
 
-    return 0;
+    //printf("msg: %s\n", msg);
+    return msg;
 }
