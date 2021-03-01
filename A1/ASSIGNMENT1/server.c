@@ -119,12 +119,114 @@ void send_message(char* sender, userNode* receiver) {
     return;
 }
 
+FILE* read_mail(userNode* user, FILE* read_fp) {
+    if(user->num_messages == 0) {
+        printf("No more mail\n");
+        return read_fp;
+    }
+
+    if(read_fp == NULL) {
+        char file_name[100];
+        strcpy(file_name, "MAILSERVER/");
+        strcat(file_name, user->id);
+        read_fp = fopen(file_name, "r");
+    }
+
+    char msg[MAX_MSG], tmp[MAX_IN];
+    strcpy(msg, "");
+    fgets(tmp, MAX_MSG, read_fp);
+    while(!strstr(tmp, "###")) {
+        strcat(msg, tmp);
+        fgets(tmp, MAX_MSG, read_fp);
+    }
+
+    printf("%s", msg);
+    return read_fp;
+}
+
+FILE* delete_mail(userNode* user, int msg_count) {
+    if(user->num_messages == 0) {
+        printf("No more mail\n");
+        return NULL;
+    }
+
+    FILE *read_fp, *write_fp;
+
+    char file_name[100];
+    strcpy(file_name, "MAILSERVER/");
+    strcat(file_name, user->id);
+    read_fp = fopen(file_name, "r");
+
+    char temp_file_name[100];
+    strcpy(temp_file_name, "MAILSERVER/.");
+    strcat(temp_file_name, user->id);
+    write_fp = fopen(temp_file_name, "w");
+
+    //Navigate to the message
+    int count = 0;
+    char tmp[MAX_IN];
+    while(count < msg_count) {
+        fgets(tmp, MAX_MSG, read_fp);
+        while(!strstr(tmp, "###")) {
+            fprintf(write_fp, "%s", tmp);
+            fgets(tmp, MAX_MSG, read_fp);
+        }
+        fprintf(write_fp, "%s", tmp);
+        count++;
+    }
+    
+    //Delete the message
+    fgets(tmp, MAX_MSG, read_fp);
+    while(!strstr(tmp, "###")) {
+        fgets(tmp, MAX_MSG, read_fp);
+    }
+    user->num_messages--;
+
+    //Write the remaining
+    while(count < user->num_messages) {
+        fgets(tmp, MAX_MSG, read_fp);
+        while(!strstr(tmp, "###")) {
+            fprintf(write_fp, "%s", tmp);
+            fgets(tmp, MAX_MSG, read_fp);
+        }
+        fprintf(write_fp, "%s", tmp);
+        count++;
+    }
+
+    //Remove old file and rename temp file
+    fclose(read_fp);
+    fclose(write_fp);
+    remove(file_name);
+    rename(temp_file_name, file_name);
+
+    //Set the read pointer to old position
+    int new_msg_count = msg_count;
+    if(msg_count >= user->num_messages) {
+        new_msg_count = 0;
+    }
+
+    count = 0;
+    read_fp = fopen(file_name, "r");
+    while(count < new_msg_count) {
+        fgets(tmp, MAX_MSG, read_fp);
+        while(!strstr(tmp, "###")) {
+            fgets(tmp, MAX_MSG, read_fp);
+        }
+        count++;
+    }
+
+    printf("Message deleted\n");
+    return read_fp;
+}
+
 int main(int argc, char* argv[]) {
     printf("Server started\n");
     char user_in[MAX_IN];
     char* token;
     char* commands[2];
     userNode* curr_user = NULL;
+    FILE* read_fp = NULL;
+    int msg_count = 0;
 
     while(1) {
         printf("Server-prompt> ");
@@ -187,13 +289,37 @@ int main(int argc, char* argv[]) {
             }
             else {
                 printf("User %s exists. Totally %d messages in spool file\n", commands[1], curr_user->num_messages);
+                read_fp = NULL;
+                msg_count = 0;
             }
         }
         else if(strcmp(commands[0], "READM") == 0) {
             printf("READM: Read the mail\n");
+
+            if(curr_user == NULL) {
+                printf("No user selected. Please select the user\n");
+            }
+            else {
+                read_fp = read_mail(curr_user, read_fp);
+                if(++msg_count == curr_user->num_messages) {
+                    fseek(read_fp, 0, SEEK_SET);
+                    msg_count = 0;
+                }
+            }
         }
         else if(strcmp(commands[0], "DELM") == 0) {
             printf("DELM: Delete the mail\n");
+
+            if(curr_user == NULL) {
+                printf("No user selected. Please select the user\n");
+            }
+            else {
+                read_fp = delete_mail(curr_user, msg_count);
+                if(msg_count >= curr_user->num_messages) {
+                    msg_count = 0;
+                }
+            }
+
         }
         else if(strcmp(commands[0], "SEND") == 0) {
             printf("SEND: Send a mail to %s\n", commands[1]);
@@ -215,6 +341,11 @@ int main(int argc, char* argv[]) {
         else if(strcmp(commands[0], "DONEU") == 0) {
             printf("DONEU: Done with the user\n");
             curr_user = NULL;
+            if(read_fp !=NULL) {
+                fclose(read_fp);
+            }
+            read_fp = NULL;
+            msg_count = 0;
         }
         else if(strcmp(commands[0], "QUIT") == 0) {
             printf("QUIT: Exiting\n");
