@@ -182,6 +182,7 @@ userNode* exists_user(char* user) {
 void send_mail(char* sender, userNode* receiver, char* mail_body) {
     //Initiase preamble
     char msg[MAX_MSG];
+    bzero(msg, MAX_MSG);
     strcpy(msg, "From: ");
     strcat(msg, sender);
     strcat(msg, "\nTo: ");
@@ -196,14 +197,10 @@ void send_mail(char* sender, userNode* receiver, char* mail_body) {
     for(int i = 0; (mail_body + i) != end_msg; i++){
         msg[msg_len + i] = mail_body[i];
     }
-
-    msg_len = strlen(msg);
-    if(msg[msg_len - 1] != '\n') {
-        msg[msg_len] = '\n';
-        msg[msg_len + 1] = '\0';
-    }
-    else {
-        msg[msg_len] = '\0';
+    msg[msg_len + strlen(mail_body)] = '\0';
+    
+    if(msg[strlen(msg) - 1] != '\n') {
+        strcat(msg, "\n");
     }
 
     strcat(msg, "###\n");
@@ -339,7 +336,6 @@ void socket_func(int sockfd) {
 
         //Read message from client
         read(sockfd, buff, sizeof(buff));
-        //printf("Received: %s\n", buff);
         strcpy(inp, buff);
 
         bzero(buff, MAX_IN);
