@@ -180,6 +180,9 @@ char* prepare_message() {
             strcpy(msg, "QUIT");
             break;
         }
+        else {
+            printf("Invalid command\n");
+        }
     }
 
     //printf("msg: %s\n", msg);
