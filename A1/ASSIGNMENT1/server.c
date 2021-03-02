@@ -9,6 +9,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <time.h>
 #define MAX_IN 1000
 #define MAX_MSG (MAX_IN + 100)
 #define SA struct sockaddr
@@ -146,13 +147,23 @@ userNode* exists_user(char* user) {
  * Send a mail from sender to receiver
 */
 void send_mail(char* sender, userNode* receiver, char* mail_body) {
-    //Initiase preamble
+    //Initialise preamble
     char msg[MAX_MSG];
     bzero(msg, MAX_MSG);
     strcpy(msg, "From: ");
     strcat(msg, sender);
     strcat(msg, "\nTo: ");
     strcat(msg, receiver->id);
+
+    //Get date and time
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char date_time[100];
+    strcpy(date_time, "");
+    sprintf(date_time, "\nDate: %d-%02d-%02d %02d:%02d:%02d",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    strcat(msg, date_time);
+
     strcat(msg, "\nMessage:\n");
 
     char* end_msg;
