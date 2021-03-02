@@ -11,39 +11,32 @@
 #include <sys/socket.h>
 #define MAX_IN 1000
 #define MAX_MSG (MAX_IN + 100)
-#define PORT 8080
 #define SA struct sockaddr
 
+//Used for preparing the message to be sent
 int user_flag = 0;
 char curr_user_id[100];
 
+//Auxilliary functions
 void socket_func(int sockfd);
 char* prepare_message();
 
 int main(int argc, char* argv[]) {
+    //Process the command line arguments
     if(argc < 3) {
         printf("Too few arguments\n");
         printf("Input format: %s <IP-addr> <port-no>\n", argv[0]);
         exit(0);
     }
 
-    int sockfd, connfd;
-    struct sockaddr_in servaddr, cli;
+    int sockfd;
+    struct sockaddr_in servaddr;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    /*
-    if (sockfd == -1) {
-        printf("socket creation failed...\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully created..\n");
-    */
-
-    bzero(&servaddr, sizeof(servaddr));
 
     //Assign IP, PORT
     int port_no = atoi(argv[2]);
+    bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr(argv[1]);
     servaddr.sin_port = htons(port_no);
@@ -56,12 +49,6 @@ int main(int argc, char* argv[]) {
     }
     else
         printf("Connected to the server\n");
-    
-
-   //connect(sockfd, (SA*)&servaddr, sizeof(servaddr));
-
-   //char init_msg[MAX_IN];
-   //read(sockfd, init_msg, MAX_IN);
 
     //Interact with the server
     socket_func(sockfd);
@@ -72,6 +59,9 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+/**
+ * Send/receive messages to/from the client
+*/
 void socket_func(int sockfd) {
     char buff[MAX_IN];
     int quit_flag = 0;
@@ -79,7 +69,6 @@ void socket_func(int sockfd) {
     while(!quit_flag) {
         bzero(buff, MAX_IN);
         strcpy(buff, prepare_message());
-        //printf("Sending: %s\n",buff);
         write(sockfd, buff, sizeof(buff));
 
         //If input was QUIT, then quit
@@ -93,6 +82,10 @@ void socket_func(int sockfd) {
     }
 }
 
+/**
+ * Read user input and prepare the message to be sent to the server
+ * Returns the prepared message
+*/
 char* prepare_message() {
     char user_in[MAX_IN];
     char* token;
@@ -192,6 +185,5 @@ char* prepare_message() {
         }
     }
 
-    //printf("msg: %s\n", msg);
     return msg;
 }

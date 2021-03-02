@@ -11,7 +11,6 @@
 #include <sys/socket.h>
 #define MAX_IN 1000
 #define MAX_MSG (MAX_IN + 100)
-#define PORT 8080
 #define SA struct sockaddr
 
 //Linked list to store user information
@@ -26,6 +25,7 @@ typedef struct userNode userNode;
 userNode* head = NULL;
 userNode* tail = NULL;
 
+//Used for command processing
 userNode* curr_user = NULL;
 FILE* read_fp = NULL;
 int msg_count = 0;
@@ -37,7 +37,7 @@ struct readRet {
 
 typedef struct readRet readRet;
 
-
+//Auxilliary functions
 int add_user(char* user_id);
 userNode* exists_user(char* user);
 void send_mail(char* sender, userNode* receiver, char* mail_body);
@@ -47,6 +47,7 @@ void socket_func(int sockfd);
 char* process_commands(char* inp);
 
 int main(int argc, char* argv[]) {
+    //Process command line arguments
     if(argc < 2) {
         printf("Too few arguments\n");
         printf("Input format: %s <port-no>\n", argv[0]);
@@ -58,18 +59,10 @@ int main(int argc, char* argv[]) {
 
     //Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    /*
-    if (sockfd == -1) {
-        printf("socket creation failed...\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully created..\n");
-    */
-    bzero(&servaddr, sizeof(servaddr));
 
     //Assign IP, PORT
     int port_no = atoi(argv[1]);
+    bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(port_no);
@@ -80,53 +73,18 @@ int main(int argc, char* argv[]) {
     len = sizeof(cli);
     connfd = accept(sockfd, (SA*)&cli, &len);
 
-    //char init_msg[] = "Connected to the server\n";
-    //write(connfd, init_msg, sizeof(init_msg));
-
     //Listen and respond to the client
     socket_func(connfd);
 
     //Close the socket
     close(sockfd);
 
-    /*
-    if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) {
-        printf("socket bind failed...\n");
-        exit(0);
-    }
-    else
-        printf("Socket successfully binded..\n");
-
-    // Now server is ready to listen and verification
-    if ((listen(sockfd, 5)) != 0) {
-        printf("Listen failed...\n");
-        exit(0);
-    }
-    else
-        printf("Server listening..\n");
-    len = sizeof(cli);
-
-    //Accept the data packet from client and verification
-    connfd = accept(sockfd, (SA*)&cli, &len);
-    if (connfd < 0) {
-        printf("server acccept failed...\n");
-        exit(0);
-    }
-    else
-        printf("server acccept the client...\n");
-
-    //Function for chatting between client and server
-    socket_func(connfd);
-
-    // After chatting close the socket
-    close(sockfd);
-    */
-
     return 0;
 }
 
 /**
  * Add a new user to the linked list, if not present
+ * Returns 1 if already present, 0 otherwise
 */
 int add_user(char* user_id){
     //Check if the user is already present
@@ -167,7 +125,8 @@ int add_user(char* user_id){
 }
 
 /**
- * Check if the given user exists. If yes, return pointer to the user's node
+ * Check if the given user exists
+ * Returns pointer to the user's node, if exists
 */
 userNode* exists_user(char* user) {
     userNode* curr;
@@ -226,6 +185,7 @@ void send_mail(char* sender, userNode* receiver, char* mail_body) {
 
 /**
  * Read the mail pointed to by the read_fp pointer
+ * Returns the message read and the new position of the read file pointer
 */
 readRet* read_mail(userNode* user, FILE* read_fp) {
     readRet* result;
@@ -263,6 +223,7 @@ readRet* read_mail(userNode* user, FILE* read_fp) {
 
 /**
  * Delete the mail after msg_count mails from the user's spool
+ * Returns the new position of read file pointer
 */
 FILE* delete_mail(userNode* user, int msg_count) {
     //Open the spool file and the temporary file
@@ -334,7 +295,9 @@ FILE* delete_mail(userNode* user, int msg_count) {
     return read_fp;
 }
 
-// Function designed for chat between client and server
+/**
+ * Send/receive messages to/from the client 
+*/
 void socket_func(int sockfd) {
     char buff[MAX_IN], inp[MAX_IN];
 
@@ -357,6 +320,10 @@ void socket_func(int sockfd) {
     }
 }
 
+/**
+ * Process the command received from the client
+ * Returns the message to be sent back to the client  
+*/
 char* process_commands(char* inp) {
     char in_msg[MAX_IN];
     char* out_msg = (char*)malloc(MAX_IN);
