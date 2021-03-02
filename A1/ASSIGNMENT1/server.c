@@ -47,6 +47,12 @@ void socket_func(int sockfd);
 char* process_commands(char* inp);
 
 int main(int argc, char* argv[]) {
+    if(argc < 2) {
+        printf("Too few arguments\n");
+        printf("Input format: %s <port-no>\n", argv[0]);
+        exit(0);
+    }
+
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
 
@@ -63,9 +69,10 @@ int main(int argc, char* argv[]) {
     bzero(&servaddr, sizeof(servaddr));
 
     //Assign IP, PORT
+    int port_no = atoi(argv[1]);
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(PORT);
+    servaddr.sin_port = htons(port_no);
 
     //Setup the socket
     bind(sockfd, (SA*)&servaddr, sizeof(servaddr));

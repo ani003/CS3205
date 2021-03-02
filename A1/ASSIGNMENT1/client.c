@@ -21,6 +21,12 @@ void socket_func(int sockfd);
 char* prepare_message();
 
 int main(int argc, char* argv[]) {
+    if(argc < 3) {
+        printf("Too few arguments\n");
+        printf("Input format: %s <IP-addr> <port-no>\n", argv[0]);
+        exit(0);
+    }
+
     int sockfd, connfd;
     struct sockaddr_in servaddr, cli;
 
@@ -37,21 +43,22 @@ int main(int argc, char* argv[]) {
     bzero(&servaddr, sizeof(servaddr));
 
     //Assign IP, PORT
+    int port_no = atoi(argv[2]);
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(PORT);
+    servaddr.sin_addr.s_addr = inet_addr(argv[1]);
+    servaddr.sin_port = htons(port_no);
 
-    /*
-    // connect the client socket to server socket
+    
+    //Connect with server
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-        printf("connection with the server failed...\n");
+        printf("Could not connect to the server. Please check if the IP address and port number are correct\n");
         exit(0);
     }
     else
-        printf("connected to the server..\n");
-    */
+        printf("Connected to the server\n");
+    
 
-   connect(sockfd, (SA*)&servaddr, sizeof(servaddr));
+   //connect(sockfd, (SA*)&servaddr, sizeof(servaddr));
 
    //char init_msg[MAX_IN];
    //read(sockfd, init_msg, MAX_IN);
