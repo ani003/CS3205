@@ -439,7 +439,7 @@ char* process_commands(char* inp) {
             userNode* receiver = NULL;
             receiver = exists_user(commands[1]);
             if(receiver == NULL) {
-                sprintf(out_msg, "Receiver %s does not exist", commands[1]);
+                sprintf(out_msg, "Receiver %s does not exist\n", commands[1]);
             }
             else {
                 char msg[MAX_IN];
