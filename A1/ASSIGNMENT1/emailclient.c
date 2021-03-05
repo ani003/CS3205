@@ -1,3 +1,8 @@
+/**
+ * Name: Anirudh S
+ * Roll no: CS17B003
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
