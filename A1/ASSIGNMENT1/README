@@ -10,12 +10,12 @@ $ make
 ## Server side
 To start the server, execute the binary and provide the port number it should use as a command line argument.
 ```
-$ ./server <port-no> &
+$ ./emailserver <port-no> &
 ```
 
 For example,
 ```
-$ ./server 8080 &
+$ ./emailserver 8080 &
 ```
 
 Port number 8080 was used while testing. Use other port numbers only after checking if they are safe.
@@ -26,12 +26,12 @@ Port number 8080 was used while testing. Use other port numbers only after check
 Start the client only after starting the server. To start the client, execute the binary along with the IP address and port number
 of the server as command line arguments.
 ```
-$ ./client <IP-addr> <port-no>
+$ ./emailclient <IP-addr> <port-no>
 ```
 
 For example (using localhost and the server set up in the above example),
 ```
-$ ./client 127.0.0.1 8080
+$ ./emailclient 127.0.0.1 8080
 ```
 
 This will open up the prompt using which we can communicate with the server. For the list of commands, refer the assignment document.
