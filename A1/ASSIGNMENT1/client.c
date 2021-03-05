@@ -79,6 +79,11 @@ void socket_func(int sockfd) {
         bzero(buff, MAX_IN);
         read(sockfd, buff, sizeof(buff));
         printf("Server: %s", buff);
+
+        if (strstr(buff, "does not exist") && !strstr(buff, "Receiver")) {
+            user_flag = 0;
+            strcpy(curr_user_id, "");
+        }
     }
 }
 
