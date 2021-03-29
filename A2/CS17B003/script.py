@@ -3,7 +3,6 @@ import argparse
 import matplotlib.pyplot as plt
 
 def simulate(ki, km, kn, kf, ps, T, out, plot_dir):
-    #print(ki, km ,kn, kf, ps, T, out)
     if not os.path.exists("./cw"):
         os.system("make")
 
@@ -23,15 +22,19 @@ def simulate(ki, km, kn, kf, ps, T, out, plot_dir):
     plot_title += "; K_f = " + str(kf)
     plot_title += "; P_s = " + str(ps)
 
+    plot_name = plot_dir + out.split('/')[-1] 
+
     with open(out, 'r') as f:
         val = [float(v) for v in f.readlines()]
+        plt.figure(figsize=(10,6))
         plt.plot(val)
         plt.title(plot_title)
         plt.xlabel("Number of updates")
         plt.ylabel("CW size (in KB)")
         plt.xlim(0, len(val))
         plt.ylim(0, max(val) + 10)
-        plt.savefig(plot_dir + out + ".png")
+        plt.savefig(plot_name + ".png")
+        plt.close()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -52,15 +55,17 @@ def main():
     if args.all:
         if not os.path.isdir("./graphs"):
             os.system("mkdir graphs")
+        
+        if not os.path.isdir("./outputs"):
+            os.system("mkdir outputs")
 
         for ki in [1.0, 4.0]:
             for km in [1.0, 1.5]:
                 for kn in [0.5, 1.0]:
                     for kf in [0.1, 0.3]:
-                        for ps in [0.01, 0.0001]:
-                            T = 2000
-
-                            out = "ki_" + str(ki)
+                        for (ps, T) in [(0.01, 1000), (0.0001, 20000)]:
+                            # Output file name
+                            out = "outputs/ki_" + str(ki)
                             out += "km_" + str(km)
                             out += "kn_" + str(kn)
                             out += "kf_" + str(kf)
