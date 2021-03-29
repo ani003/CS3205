@@ -1,3 +1,8 @@
+/**
+ * Name: Anirudh S
+ * Roll no: CS17B003
+*/
+
 #include <bits/stdc++.h>
 #define MSS 1.0             // MSS size in KB
 #define RWS 1024.0          // RWS size in KB

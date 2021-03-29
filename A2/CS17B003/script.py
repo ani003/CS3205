@@ -1,3 +1,6 @@
+# Name: Anirudh S
+# Roll no: CS17B003
+
 import os
 import argparse
 import matplotlib.pyplot as plt
