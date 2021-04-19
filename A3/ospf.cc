@@ -13,6 +13,8 @@ struct node_info {
 };
 vector<node_info> neighbours;
 
+vector<vector<pair<int, int>>> adj_list;
+
 void parse_args(int argc, char* argv[]);
 void read_file();
 
@@ -42,7 +44,64 @@ void dijkstra_algo() {
         std::this_thread::sleep_for(std::chrono::milliseconds(spfi));
         cout << "Dijkstra\n";
     }
-}    
+}
+
+void test_dijkstra() {
+    cout << "In dijkstra\n";
+    int source = id;
+    typedef pair<int, pair<int,int>> heap_ele;
+    priority_queue<heap_ele, vector<heap_ele>, greater<heap_ele>> pq;
+    unordered_map<int, bool> done;
+    vector<string> paths;
+    paths.resize(num_nodes, "");
+    paths[source] = to_string(source);
+
+    vector<int> cost;
+    cost.resize(num_nodes, INT_MAX);
+    cost[source] = 0;
+
+    for(int i = 0; i < num_nodes; i++) {
+        pq.push(make_pair(INT_MAX, make_pair(i, -1)));
+        done[i] = false;
+    }
+
+    pq.push(make_pair(0, make_pair(source, -1)));
+
+    while (!pq.empty()) {
+        pair<int, pair<int, int>> info = pq.top();
+        pq.pop();
+
+        int wt = info.first;
+        int node = info.second.first;
+        int parent = info.second.second;
+
+        if(!done[node]) {
+            done[node] = true;
+            // Update neighbours
+            vector<pair<int,int>> nbrs_list = adj_list[node];
+            for(int i = 0; i < nbrs_list.size(); i++) {
+                int nbr = nbrs_list[i].first;
+                int edge_wt = nbrs_list[i].second;
+
+                pq.push(make_pair(wt + edge_wt, make_pair(nbr, node)));
+            }
+
+            // Update path
+            if(parent != -1) {
+                paths[node] = paths[parent] + to_string(node);
+                cost[node] = wt;
+            }
+        }
+    }
+
+    for(int i = 0; i < paths.size(); i++) {
+        if (i == source)
+            continue;
+
+        cout << i << " - " << paths[i] << " " << cost[i] << "\n";
+    }
+    
+}
 
 void run() {
     thread hello(hello_send);
@@ -72,9 +131,10 @@ int main(int argc, char* argv[]) {
 
     // Read info from the file
     read_file();
+    test_dijkstra();
 
     // Run ospf
-    run();
+    //run();
 
     return 0;
 }
@@ -159,6 +219,11 @@ void read_file() {
     num_edges = stoi(word);
     ss.clear();
 
+    for(int j = 0; j < num_nodes; j++) {
+        vector<pair<int, int>> v;
+        adj_list.push_back(v);
+    }
+
     // Edges
     for(int i = 0; i < num_edges; i++) {
         getline(file, line);
@@ -181,5 +246,9 @@ void read_file() {
             node_info nbr = {node1, INT_MAX, min_wt, max_wt};
             neighbours.push_back(nbr);
         }
+
+        //TO BE DELETED
+        adj_list[node1].push_back(make_pair(node2, min_wt));
+        adj_list[node2].push_back(make_pair(node1, min_wt));
     }
 }
