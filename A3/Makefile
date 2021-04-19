@@ -2,7 +2,7 @@
 # Roll no: CS17B003
 
 CC := g++
-CFLAGS := -Wall
+CFLAGS := -Wall -std=c++11 -pthread
 
 SRCS := $(wildcard *.cc)
 PROGS := $(patsubst %.cc,%,$(SRCS))
