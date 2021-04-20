@@ -83,7 +83,17 @@ void receive() {
                         srand((unsigned)time(NULL));
                         new_wt = min_lim + (rand() % (max_lim - min_lim + 1));
                         neighbours[i].wt = new_wt;
-                        adj_list[id].push_back(make_pair(src, new_wt));
+
+                        for(auto it = adj_list[id].begin(); it != adj_list[id].end(); ++it) {
+                            if(it->first == src) {
+                                it->second = new_wt;
+                            }
+                        }
+                        for(auto it = adj_list[src].begin(); it != adj_list[src].end(); ++it) {
+                            if(it->first == id) {
+                                it->second = new_wt;
+                            }
+                        }
                     }
                     string new_msg = "HELLOREPLY " + to_string(id) + " " + to_string(src) + " "
                                     + to_string(neighbours[i].wt);
@@ -111,9 +121,15 @@ void receive() {
                     ss >> word;
                     int nbr_wt = stoi(word);
 
-                    for(int l = 0; l < adj_list[src].size(); l++) {
-                        if(adj_list[src][l].first == nbr_node) {
-                            adj_list[src][l].second = nbr_wt;
+                    for(auto it = adj_list[src].begin(); it != adj_list[src].end(); ++it) {
+                        if(it->first == nbr_node) {
+                            it->second = nbr_wt;
+                        }
+                    }
+
+                    for(auto it = adj_list[nbr_node].begin(); it != adj_list[nbr_node].end(); ++it) {
+                        if(it->first == src) {
+                            it->second = nbr_wt;
                         }
                     }
                 }
@@ -141,9 +157,20 @@ void receive() {
             if(dest == id) {
                 for(int i = 0; i < neighbours.size(); i++) {
                     if(neighbours[i].id == src) {
-                        if(neighbours[i].wt == INT_MAX) {
+                        if(edge_wt < neighbours[i].wt) {
                             neighbours[i].wt = edge_wt;
-                            adj_list[id].push_back(make_pair(src, edge_wt));
+                            
+                            for(auto it = adj_list[id].begin(); it != adj_list[id].end(); ++it) {
+                                if(it->first == src) {
+                                    it->second = edge_wt;
+                                }
+                            }
+                            
+                            for(auto it = adj_list[src].begin(); it != adj_list[src].end(); ++it) {
+                                if(it->first == id) {
+                                    it->second = edge_wt;
+                                }
+                            }
                         }
                     }
                 }
@@ -192,15 +219,15 @@ void dijkstra_algo() {
             int node = info.second.first;
             int parent = info.second.second;
 
-            if(!done[node]) {
+            if(!done[node] && wt != INT_MAX) {
                 done[node] = true;
                 // Update neighbours
-                vector<pair<int,int>> nbrs_list = adj_list[node];
-                for(int i = 0; i < nbrs_list.size(); i++) {
-                    int nbr = nbrs_list[i].first;
-                    int edge_wt = nbrs_list[i].second;
-
-                    pq.push(make_pair(wt + edge_wt, make_pair(nbr, node)));
+                for(auto it = adj_list[node].begin(); it != adj_list[node].end(); ++it) {
+                    int nbr = it->first;
+                    int edge_wt = it->second;
+                    if(!done[nbr] && edge_wt != INT_MAX) {
+                        pq.push(make_pair(wt + edge_wt, make_pair(nbr, node)));
+                    }
                 }
 
                 // Update path
@@ -367,6 +394,9 @@ void read_file() {
             neighbours.push_back(nbr);
             seq[node1] = -1;
         }
+
+        adj_list[node1].push_back(make_pair(node2, INT_MAX));
+        adj_list[node2].push_back(make_pair(node1, INT_MAX));
     }
 
     ofstream output(outfile);
