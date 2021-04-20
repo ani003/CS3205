@@ -287,9 +287,9 @@ int main(int argc, char* argv[]) {
 
 void parse_args(int argc, char* argv[]) {
     // Given default values
-    hi = 1.0;
-    lsai = 5.0;
-    spfi = 20.0;
+    hi = 1000.0;
+    lsai = 5000.0;
+    spfi = 20000.0;
 
     // Parse command line arguments
     for(int i = 1; i < argc; i++) {
