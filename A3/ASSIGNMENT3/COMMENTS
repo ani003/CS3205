@@ -1,3 +1,8 @@
+<!-- 
+Name: Anirudh S
+Roll no: CS17B003
+-->
+
 Following assumptions are made:
 1. If two nodes i and j, propose two different weights to each other (through HELLOREPLY), then the lower of the two weights are retained.
 2. Once a weight for a link has been assigned, the same weight is sent through the HELLOREPLY packet.
