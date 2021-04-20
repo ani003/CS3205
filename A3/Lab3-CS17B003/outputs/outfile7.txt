@@ -1,0 +1,30 @@
+Routing table for node 7 at time 20
+Destination - Path - Cost
+0 - 7,2,0 - 33
+1 - 7,3,1 - 23
+2 - 7,2 - 27
+3 - 7,3 - 14
+4 - 7,3,1,4 - 26
+5 - 7,6,5 - 26
+6 - 7,6 - 6
+
+Routing table for node 7 at time 40
+Destination - Path - Cost
+0 - 7,2,0 - 33
+1 - 7,3,1 - 23
+2 - 7,2 - 27
+3 - 7,3 - 14
+4 - 7,3,1,4 - 26
+5 - 7,6,5 - 26
+6 - 7,6 - 6
+
+Routing table for node 7 at time 60
+Destination - Path - Cost
+0 - 7,2,0 - 33
+1 - 7,3,1 - 23
+2 - 7,2 - 27
+3 - 7,3 - 14
+4 - 7,3,1,4 - 26
+5 - 7,6,5 - 26
+6 - 7,6 - 6
+
