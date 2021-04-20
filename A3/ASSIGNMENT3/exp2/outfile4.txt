@@ -1,0 +1,30 @@
+Routing table for node 4 at time 20
+Destination - Path - Cost
+0 - 4,0 - 10
+1 - 4,0,1 - 17
+2 - 4,0,2 - 13
+3 - 4,0,3 - 15
+5 - 4,5 - 12
+6 - 4,0,2,6 - 17
+7 - 4,0,1,7 - 24
+
+Routing table for node 4 at time 40
+Destination - Path - Cost
+0 - 4,0 - 10
+1 - 4,0,1 - 17
+2 - 4,0,2 - 13
+3 - 4,0,3 - 15
+5 - 4,5 - 12
+6 - 4,0,2,6 - 17
+7 - 4,0,1,7 - 24
+
+Routing table for node 4 at time 60
+Destination - Path - Cost
+0 - 4,0 - 10
+1 - 4,0,1 - 17
+2 - 4,0,2 - 13
+3 - 4,0,3 - 15
+5 - 4,5 - 12
+6 - 4,0,2,6 - 17
+7 - 4,0,1,7 - 24
+

@@ -1,0 +1,30 @@
+Routing table for node 5 at time 20
+Destination - Path - Cost
+0 - 5,2,0 - 16
+1 - 5,2,0,1 - 23
+2 - 5,2 - 13
+3 - 5,2,0,3 - 21
+4 - 5,4 - 12
+6 - 5,2,6 - 17
+7 - 5,2,0,1,7 - 30
+
+Routing table for node 5 at time 40
+Destination - Path - Cost
+0 - 5,2,0 - 16
+1 - 5,2,0,1 - 23
+2 - 5,2 - 13
+3 - 5,2,0,3 - 21
+4 - 5,4 - 12
+6 - 5,2,6 - 17
+7 - 5,2,0,1,7 - 30
+
+Routing table for node 5 at time 60
+Destination - Path - Cost
+0 - 5,2,0 - 16
+1 - 5,2,0,1 - 23
+2 - 5,2 - 13
+3 - 5,2,0,3 - 21
+4 - 5,4 - 12
+6 - 5,2,6 - 17
+7 - 5,2,0,1,7 - 30
+
