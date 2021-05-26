@@ -1,7 +1,11 @@
-# Name: Anirudh S
-# Roll no: CS17B003
+<!--
+Name: Anirudh S
+Roll no: CS17B003
+-->
 
-# Instructions to run the code
+# Assignment 1: Mail client server application
+
+## Instructions to run the code
 Please follow the instructions given below to compile and execute the code. All commands given here are `bash` commands.
 
 ## Compilation
