@@ -1,8 +1,11 @@
 # CS3205
 This repo contains all the programming assignments for the **CS3205: Introduction to Computer Networks** course. All assignments have their individual READMEs with execution instructions.
 
-License:
-Copyright (c) 2021 Anirudh Sunder Raj <anirudh6626@gmail.com>
+---
+
+**License:**
+
+Copyright (c) 2021 Anirudh S <anirudh6626@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
